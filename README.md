@@ -1,7 +1,9 @@
-# sideproject_100AI
+# AIwebapp_autoever
 사이드 프로젝트 : 웹애플리케이션 100퍼센트 AI로 만들기
-# makeWEBwithAI0to100
-0부터 100까지 AI로  만든 웹 애플리케이션
+
+[현대자동차그룹 통합 재고관리 데이터베이스 프로젝트](https://github.com/KORgosu/hyundaiautoever_sideproject) 의 연장선
+
+전 과정을 AI 로 제작하고, 직접 수작업한 프로젝트와 입출력 속도차이 등 테스트 예정
 
 <br>
 
