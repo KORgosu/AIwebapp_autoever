@@ -7,155 +7,155 @@ import { auth, db } from '../firebase';
 
 const LoginContainer = styled.div`
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
+  min-height: 100vh;
   background-color: #f5f5f5;
 `;
 
-const Banner = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  padding: 1rem 2rem;
-  background-color: #002C5F;
-  color: white;
-  font-size: 1.2rem;
-  font-weight: bold;
-  width: 100%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+const LeftSection = styled.div`
+  flex: 6.5;
+  background: url('/hyundai-background.jpg') center/cover no-repeat;
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3));
+  }
 `;
 
-const LoginForm = styled.form`
+const RightSection = styled.div`
+  flex: 3.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+  background-color: #f5f5f5;
+`;
+
+const LoginBox = styled.div`
   background: white;
   padding: 2rem;
   border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  width: 300px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const Logo = styled.img`
+  width: 150px;
   margin-top: 2rem;
+  object-fit: contain;
+`;
+
+const Title = styled.h1`
+  color: #002C5F;
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 `;
 
 const Input = styled.input`
-  width: 100%;
   padding: 0.8rem;
-  margin: 0.5rem 0;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1rem;
-  box-sizing: border-box;
-  
   &:focus {
     outline: none;
-    border-color: #007bff;
+    border-color: #002C5F;
   }
 `;
 
 const Button = styled.button`
-  width: 100%;
   padding: 0.8rem;
-  margin-top: 1rem;
-  background-color: #007bff;
+  background-color: #002C5F;
   color: white;
   border: none;
   border-radius: 4px;
   font-size: 1rem;
   cursor: pointer;
-  box-sizing: border-box;
-  
+  transition: background-color 0.2s;
   &:hover {
-    background-color: #0056b3;
+    background-color: #001F4D;
   }
 `;
 
 const ErrorMessage = styled.p`
   color: #dc3545;
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
+`;
+
+const TopBanner = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: #002C5F;
+  color: white;
+  padding: 1rem;
   text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
 `;
 
 const Login = () => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    id: '',
-    password: ''
-  });
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prevState => ({
-      ...prevState,
-      [name]: value
-    }));
-    setError('');
-  };
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-
     try {
-      // 마스터 계정 확인
-      if (formData.id === 'olyn' && formData.password === '0960') {
-        navigate('/master');
-        return;
-      }
-
-      // Guest 계정 로그인
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        `${formData.id}@guest.com`,
-        formData.password
-      );
-
-      // 사용자 역할 확인
-      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-      const userData = userDoc.data();
-
-      if (userData.role === 'guest') {
-        navigate('/guest');
-      } else {
-        setError('접근 권한이 없습니다.');
-      }
+      await signInWithEmailAndPassword(auth, email, password);
+      navigate('/master');
     } catch (error) {
-      console.error('Login error:', error);
-      setError('아이디 또는 비밀번호가 올바르지 않습니다.');
-    } finally {
-      setLoading(false);
+      setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
     }
   };
 
   return (
     <LoginContainer>
-      <Banner>현대자동차 통합 재고관리 데이터베이스</Banner>
-      <LoginForm onSubmit={handleSubmit}>
-        <h2>로그인</h2>
-        <Input
-          type="text"
-          name="id"
-          placeholder="아이디"
-          value={formData.id}
-          onChange={handleChange}
-          required
-          disabled={loading}
-        />
-        <Input
-          type="password"
-          name="password"
-          placeholder="비밀번호"
-          value={formData.password}
-          onChange={handleChange}
-          required
-          disabled={loading}
-        />
-        {error && <ErrorMessage>{error}</ErrorMessage>}
-        <Button type="submit" disabled={loading}>
-          {loading ? '로그인 중...' : '로그인'}
-        </Button>
-      </LoginForm>
+      <TopBanner>현대자동차 통합 재고 관리 데이터베이스</TopBanner>
+      <LeftSection />
+      <RightSection>
+        <LoginBox>
+          <Title>재고관리 시스템 로그인</Title>
+          <Form onSubmit={handleSubmit}>
+            <Input
+              type="email"
+              placeholder="이메일"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <Input
+              type="password"
+              placeholder="비밀번호"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <Button type="submit">로그인</Button>
+          </Form>
+          {error && <ErrorMessage>{error}</ErrorMessage>}
+          <Logo src="/hyundai-logo.png" alt="현대자동차 로고" />
+        </LoginBox>
+      </RightSection>
     </LoginContainer>
   );
 };
