@@ -59,11 +59,11 @@ app.get('/api/inventory', async (req, res) => {
 app.post('/api/inventory', async (req, res) => {
   let conn;
   try {
-    const { partNumber, partName, quantity, location } = req.body;
+    const { part_number, part_name, quantity, location } = req.body;
     conn = await pool.getConnection();
     const result = await conn.query(
       'INSERT INTO inventory (part_number, part_name, quantity, location) VALUES (?, ?, ?, ?)',
-      [partNumber, partName, quantity, location]
+      [part_number, part_name, quantity, location]
     );
     
     // 새로 추가된 데이터 조회
@@ -89,11 +89,11 @@ app.put('/api/inventory/:id', async (req, res) => {
   let conn;
   try {
     const { id } = req.params;
-    const { partNumber, partName, quantity, location } = req.body;
+    const { part_number, part_name, quantity, location } = req.body;
     conn = await pool.getConnection();
     await conn.query(
       'UPDATE inventory SET part_number = ?, part_name = ?, quantity = ?, location = ? WHERE id = ?',
-      [partNumber, partName, quantity, location, id]
+      [part_number, part_name, quantity, location, id]
     );
     res.json({ message: '재고가 수정되었습니다.' });
   } catch (err) {

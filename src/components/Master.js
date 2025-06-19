@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import axios from 'axios';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 
 const MasterContainer = styled.div`
   padding: 2rem;
@@ -165,6 +168,17 @@ const AddButton = styled.button`
   }
 `;
 
+const TextLink = styled.span`
+  color: #007bff;
+  cursor: pointer;
+  font-weight: 500;
+  margin-left: 1rem;
+  &:hover {
+    text-decoration: underline;
+    color: #0056b3;
+  }
+`;
+
 function Master() {
   const navigate = useNavigate();
   const [dbStatus, setDbStatus] = useState(null);
@@ -173,8 +187,8 @@ function Master() {
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({
-    partNumber: '',
-    partName: '',
+    part_number: '',
+    part_name: '',
     quantity: '',
     location: ''
   });
@@ -183,7 +197,43 @@ function Master() {
   useEffect(() => {
     testDatabaseConnection();
     fetchInventory();
+    initializeMasterAccount();
   }, []);
+
+  const initializeMasterAccount = async () => {
+    try {
+      // 기존 마스터 계정이 있는지 확인
+      const masterEmail = 'olyn@master.com';
+      const userDoc = await getDoc(doc(db, 'users', 'master-account'));
+      
+      if (!userDoc.exists()) {
+        // 마스터 계정이 없으면 생성 (비밀번호를 6자 이상으로 변경)
+        try {
+          const userCredential = await createUserWithEmailAndPassword(
+            auth,
+            masterEmail,
+            '096000'  // 6자 이상으로 변경
+          );
+          
+          await setDoc(doc(db, 'users', userCredential.user.uid), {
+            id: 'olyn',
+            role: 'master',
+            createdAt: new Date().toISOString()
+          });
+          
+          console.log('초기 마스터 계정이 생성되었습니다.');
+        } catch (error) {
+          if (error.code === 'auth/email-already-in-use') {
+            console.log('마스터 계정이 이미 존재합니다.');
+          } else {
+            console.error('마스터 계정 생성 오류:', error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('마스터 계정 초기화 오류:', error);
+    }
+  };
 
   const testDatabaseConnection = async () => {
     try {
@@ -218,8 +268,8 @@ function Master() {
   const handleAddClick = () => {
     setEditingItem(null);
     setFormData({
-      partNumber: '',
-      partName: '',
+      part_number: '',
+      part_name: '',
       quantity: '',
       location: ''
     });
@@ -229,8 +279,8 @@ function Master() {
   const handleEditClick = (item) => {
     setEditingItem(item);
     setFormData({
-      partNumber: item.part_number,
-      partName: item.part_name,
+      part_number: item.part_number,
+      part_name: item.part_name,
       quantity: item.quantity,
       location: item.location
     });
@@ -259,11 +309,22 @@ function Master() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.part_number || !formData.part_name || !formData.quantity || !formData.location) {
+      alert('모든 항목을 입력해 주세요.');
+      return;
+    }
+    const payload = {
+      part_number: formData.part_number,
+      part_name: formData.part_name,
+      quantity: Number(formData.quantity),
+      location: formData.location
+    };
+    console.log('payload:', payload); // 디버깅용
     try {
       if (editingItem) {
-        await axios.put(`http://localhost:5000/api/inventory/${editingItem.id}`, formData);
+        await axios.put(`http://localhost:5000/api/inventory/${editingItem.id}`, payload);
       } else {
-        const response = await axios.post('http://localhost:5000/api/inventory', formData);
+        const response = await axios.post('http://localhost:5000/api/inventory', payload);
         if (response.data.message) {
           alert(response.data.message);
         }
@@ -283,28 +344,30 @@ function Master() {
   return (
     <MasterContainer>
       <Header>
-        <Title>현대자동차 통합 재고관리 데이터베이스</Title>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <img src={process.env.PUBLIC_URL + '/image1-removebg-preview.png'} alt="현대자동차그룹 로고" style={{ height: '60px' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <LoginStatus>master로 로그인 중입니다</LoginStatus>
-          <LogoutButton onClick={handleLogout}>로그아웃</LogoutButton>
+          <TextLink onClick={handleCreateGuest}>게스트 계정 생성</TextLink>
+          <TextLink onClick={handleLogout}>로그아웃</TextLink>
         </div>
       </Header>
       <Content>
-        <CreateGuestButton onClick={handleCreateGuest}>게스트 계정 생성</CreateGuestButton>
         {dbStatus && (
           <DatabaseStatus status={dbStatus}>
             {dbStatus === 'success' ? '데이터베이스 연결 성공' : dbError}
           </DatabaseStatus>
         )}
-        <AddButton onClick={handleAddClick}>+ 새 재고 추가</AddButton>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <AddButton onClick={handleAddClick}>+ 새 재고 추가</AddButton>
+        </div>
         {loading ? (
           <p>데이터를 불러오는 중...</p>
         ) : (
           <InventoryTable>
             <thead>
               <tr>
-                <TableHeader>파트번호</TableHeader>
-                <TableHeader>파트명</TableHeader>
+                <TableHeader>부품번호</TableHeader>
+                <TableHeader>부품명</TableHeader>
                 <TableHeader>수량</TableHeader>
                 <TableHeader>위치</TableHeader>
                 <TableHeader>등록일자</TableHeader>
@@ -344,21 +407,21 @@ function Master() {
             <h2>{editingItem ? '재고 수정' : '새 재고 추가'}</h2>
             <form onSubmit={handleSubmit}>
               <FormGroup>
-                <Label>파트번호</Label>
+                <Label>부품번호</Label>
                 <Input
                   type="text"
-                  name="partNumber"
-                  value={formData.partNumber}
+                  name="part_number"
+                  value={formData.part_number}
                   onChange={handleInputChange}
                   required
                 />
               </FormGroup>
               <FormGroup>
-                <Label>파트명</Label>
+                <Label>부품명</Label>
                 <Input
                   type="text"
-                  name="partName"
-                  value={formData.partName}
+                  name="part_name"
+                  value={formData.part_name}
                   onChange={handleInputChange}
                   required
                 />

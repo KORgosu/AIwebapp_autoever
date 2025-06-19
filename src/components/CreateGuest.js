@@ -76,12 +76,32 @@ const ErrorMessage = styled.p`
   text-align: center;
 `;
 
+const RadioGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+  justify-content: center;
+`;
+
+const RadioLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+`;
+
+const RadioInput = styled.input`
+  cursor: pointer;
+`;
+
 const CreateGuest = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     id: '',
     password: ''
   });
+  const [accountType, setAccountType] = useState('guest');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -102,27 +122,46 @@ const CreateGuest = () => {
       return;
     }
 
+    // 비밀번호 길이 검증 (Firebase는 최소 6자 요구)
+    if (formData.password.length < 6) {
+      setError('비밀번호는 최소 6자 이상이어야 합니다.');
+      return;
+    }
+
     setLoading(true);
     try {
+      // 입력된 ID에서 공백 제거
+      const cleanId = formData.id.trim();
+      
+      // 계정 타입에 따라 이메일 도메인 결정
+      const emailDomain = accountType === 'master' ? '@master.com' : '@guest.com';
+      const email = `${cleanId}${emailDomain}`;
+      
       // Firebase Authentication으로 사용자 생성
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        `${formData.id}@guest.com`, // 이메일 형식으로 변환
+        email,
         formData.password
       );
 
       // Firestore에 추가 정보 저장
       await setDoc(doc(db, 'users', userCredential.user.uid), {
-        id: formData.id,
-        role: 'guest',
+        id: cleanId,
+        role: accountType,
         createdAt: new Date().toISOString()
       });
 
-      alert('Guest 계정이 성공적으로 생성되었습니다.');
+      alert(`${accountType === 'master' ? 'Master' : 'Guest'} 계정이 성공적으로 생성되었습니다.`);
       navigate('/master');
     } catch (error) {
-      console.error('Error creating guest account:', error);
-      setError(error.message);
+      console.error('Error creating account:', error);
+      if (error.code === 'auth/email-already-in-use') {
+        setError('이미 존재하는 사용자 ID입니다.');
+      } else if (error.code === 'auth/weak-password') {
+        setError('비밀번호는 최소 6자 이상이어야 합니다.');
+      } else {
+        setError(error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -132,11 +171,35 @@ const CreateGuest = () => {
     <CreateGuestContainer>
       <BackButton onClick={() => navigate('/master')}>뒤로 가기</BackButton>
       <CreateGuestForm onSubmit={handleSubmit}>
-        <h2>Guest 계정 생성</h2>
+        <h2>계정 생성</h2>
+        
+        <RadioGroup>
+          <RadioLabel>
+            <RadioInput
+              type="radio"
+              name="accountType"
+              value="guest"
+              checked={accountType === 'guest'}
+              onChange={(e) => setAccountType(e.target.value)}
+            />
+            Guest 계정
+          </RadioLabel>
+          <RadioLabel>
+            <RadioInput
+              type="radio"
+              name="accountType"
+              value="master"
+              checked={accountType === 'master'}
+              onChange={(e) => setAccountType(e.target.value)}
+            />
+            Master 계정
+          </RadioLabel>
+        </RadioGroup>
+        
         <Input
           type="text"
           name="id"
-          placeholder="Guest ID"
+          placeholder="사용자 ID"
           value={formData.id}
           onChange={handleChange}
           required

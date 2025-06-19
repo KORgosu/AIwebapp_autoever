@@ -99,8 +99,8 @@ function Guest() {
   return (
     <GuestContainer>
       <Header>
-        <Title>현대자동차 통합 재고관리 데이터베이스</Title>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <img src={process.env.PUBLIC_URL + '/image1-removebg-preview.png'} alt="현대자동차그룹 로고" style={{ height: '60px' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <LoginStatus>guest로 로그인 중입니다</LoginStatus>
           <LogoutButton onClick={handleLogout}>로그아웃</LogoutButton>
         </div>
