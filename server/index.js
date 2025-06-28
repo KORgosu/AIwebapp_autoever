@@ -9,10 +9,10 @@ const port = process.env.PORT || 5000;
 
 // MariaDB 연결 풀 생성
 const pool = mariadb.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_DATABASE,
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_DATABASE || 'hyundai_inventory',
   connectionLimit: 5
 });
 
@@ -21,6 +21,9 @@ const mongoClient = new MongoClient(process.env.MONGODB_URI);
 
 app.use(cors());
 app.use(express.json());
+
+// MariaDB 연결을 app.locals에 설정
+app.locals.db = pool;
 
 // 재고 라우터 연결
 const inventoryRouter = require('./routes/inventory');
@@ -35,6 +38,24 @@ app.get('/api/test', async (req, res) => {
   } catch (err) {
     console.error('Error connecting to the database:', err);
     res.status(500).json({ error: '데이터베이스 연결 실패' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// 블루핸즈 데이터베이스 연결 테스트
+app.get('/api/test-bluehands', async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const rows = await conn.query('SELECT COUNT(*) as count FROM bluehands');
+    res.json({ 
+      message: '블루핸즈 데이터베이스 연결 성공!', 
+      bluehandsCount: rows[0].count 
+    });
+  } catch (err) {
+    console.error('Error connecting to bluehands database:', err);
+    res.status(500).json({ error: '블루핸즈 데이터베이스 연결 실패' });
   } finally {
     if (conn) conn.release();
   }

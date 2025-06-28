@@ -1,4 +1,4 @@
-const { Kafka } = require('kafkajs');
+const { Kafka, Partitioners } = require('kafkajs');
 const mariadb = require('mariadb');
 const { MongoClient } = require('mongodb');
 require('dotenv').config();
@@ -21,7 +21,9 @@ const kafka = new Kafka({
   brokers: [process.env.KAFKA_BROKER || 'localhost:9092']
 });
 
-const producer = kafka.producer();
+const producer = kafka.producer({
+  createPartitioner: Partitioners.LegacyPartitioner
+});
 const consumer = kafka.consumer({ groupId: 'inventory-sync-group' });
 
 // MariaDB에서 데이터를 읽어 Kafka로 전송

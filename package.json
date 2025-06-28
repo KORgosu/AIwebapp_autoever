@@ -24,7 +24,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "server": "node server/index.js",
-    "sync": "node server/sync.js"
+    "gateway": "node server/start-gateway.js",
+    "sync": "set KAFKAJS_NO_PARTITIONER_WARNING=1 && node server/sync.js",
+    "setup-mongodb": "node server/setup-mongodb-indexes.js"
   },
   "eslintConfig": {
     "extends": [
