@@ -138,19 +138,6 @@ const DistanceBadge = styled.span`
   margin-left: 0.5rem;
 `;
 
-const SyncButton = styled.button`
-  padding: 0.5rem 1rem;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-left: 1rem;
-  &:hover {
-    background-color: #218838;
-  }
-`;
-
 const BluehandsTable = styled.table`
   width: 100%;
   border-collapse: collapse;
@@ -205,14 +192,22 @@ function Guest() {
   const [locationInfo, setLocationInfo] = useState(null);
   const [branchInfo, setBranchInfo] = useState(null);
   const [summaryInfo, setSummaryInfo] = useState(null);
-  const [syncing, setSyncing] = useState(false);
   const [bluehandsData, setBluehandsData] = useState([]);
   const [isLoadingBluehands, setIsLoadingBluehands] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [currentAddress, setCurrentAddress] = useState(null);
+  const [nearbyBranchNames, setNearbyBranchNames] = useState([]);
+  const [filteredInventory, setFilteredInventory] = useState([]);
+  const [nearbyBranchesArray, setNearbyBranchesArray] = useState([]);
 
   useEffect(() => {
     initializeLocation();
     // 로그인 시 즉시 현재 위치 조회
     autoGetCurrentLocation();
+    // 페이지 타이틀 설정
+    document.title = "현대자동차 통합 재고 조회";
   }, []);
 
   const initializeLocation = async () => {
@@ -253,8 +248,7 @@ function Guest() {
       const coords = await getCurrentLocation();
       
       // GPS 좌표를 주소로 변환
-      const address = await getAddressFromCoordinates(coords.latitude, coords.longitude);
-      console.log('변환된 주소:', address);
+      await getAddressFromCoordinates(coords.latitude, coords.longitude);
       
       const newLocation = {
         city: '서울특별시',
@@ -262,17 +256,17 @@ function Guest() {
         district: '강남구',
         latitude: coords.latitude,
         longitude: coords.longitude,
-        address: address // 변환된 주소 추가
+        address: currentAddress // 변환된 주소 추가
       };
       
       setUserLocation(newLocation);
       console.log('자동 위치 설정 완료:', newLocation);
       
-      // 위치 기반 재고 조회
-      await fetchInventoryByLocation(newLocation);
+      // 블루핸즈 데이터 먼저 조회 (지점명 저장을 위해)
+      const branchesArray = await fetchBluehandsData(coords.latitude, coords.longitude);
       
-      // 블루핸즈 데이터도 함께 조회
-      await fetchBluehandsData(coords.latitude, coords.longitude);
+      // 그 다음 재고 조회 (필터링된 데이터 표시)
+      await fetchInventoryByLocation(newLocation, branchesArray);
       
     } catch (error) {
       console.error('자동 위치 조회 실패:', error);
@@ -301,77 +295,154 @@ function Guest() {
   };
 
   const getCurrentLocation = () => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocation이 지원되지 않습니다.'));
-        return;
-      }
+    setIsLoadingLocation(true);
+    setLocationError(null);
+    setCurrentAddress(null);
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-        },
-        (error) => {
-          reject(error);
+    if (!navigator.geolocation) {
+      setLocationError('이 브라우저에서는 위치 정보를 지원하지 않습니다.');
+      setIsLoadingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setCurrentLocation({ latitude, longitude });
+        setIsLoadingLocation(false);
+        
+        // 위치를 가져온 후 주소도 함께 가져오기
+        await getAddressFromCoordinates(latitude, longitude);
+        
+        // 블루핸즈 데이터 먼저 조회 (지점명 저장을 위해)
+        const branchesArray = await fetchBluehandsData(latitude, longitude);
+        
+        // 그 다음 재고 조회 (필터링된 데이터 표시)
+        // fetchBluehandsData에서 반환된 배열을 전달
+        await fetchInventoryByLocation({ latitude, longitude }, branchesArray);
+      },
+      (error) => {
+        let errorMessage = '위치를 가져올 수 없습니다.';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = '위치 정보 접근이 거부되었습니다.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = '위치 정보를 사용할 수 없습니다.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = '위치 정보 요청 시간이 초과되었습니다.';
+            break;
+          default:
+            errorMessage = '알 수 없는 오류가 발생했습니다.';
         }
-      );
-    });
-  };
-
-  const handleGetCurrentLocation = async () => {
-    try {
-      setLoading(true);
-      const coords = await getCurrentLocation();
-      
-      // GPS 좌표를 주소로 변환
-      const address = await getAddressFromCoordinates(coords.latitude, coords.longitude);
-      console.log('수동 위치 조회 - 변환된 주소:', address);
-      
-      const newLocation = {
-        ...userLocation,
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        address: address
-      };
-      
-      setUserLocation(newLocation);
-      await fetchInventoryByLocation(newLocation);
-      
-      // 블루핸즈 데이터도 함께 조회
-      await fetchBluehandsData(coords.latitude, coords.longitude);
-      
-    } catch (error) {
-      console.error('현재 위치 감지 오류:', error);
-      setError('현재 위치를 가져오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSyncBluehands = async () => {
-    try {
-      setSyncing(true);
-      const response = await axios.post('http://localhost:5000/api/sync/bluehands');
-      
-      if (response.data.success) {
-        alert(`동기화 완료! ${response.data.count}개의 지점이 동기화되었습니다.`);
-        // 동기화 후 데이터 새로고침
-        await fetchInventoryByLocation(userLocation);
-      } else {
-        setError('동기화에 실패했습니다.');
+        setLocationError(errorMessage);
+        setIsLoadingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
       }
+    );
+  };
+
+  const getAddressFromCoordinates = async (latitude, longitude) => {
+    setIsLoadingLocation(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&accept-language=ko&addressdetails=1`
+      );
+      if (!response.ok) {
+        throw new Error(`API 응답 오류: ${response.status}`);
+      }
+      const data = await response.json();
+      let koreanAddress = '';
+      if (data.address) {
+        const addr = data.address;
+        const state = addr.state || addr.province;
+        const city = addr.city || addr.county;
+        const district = addr.district || addr.suburb;
+        const neighbourhood = addr.neighbourhood || addr.quarter;
+        const components = [];
+        if (state) components.push(state);
+        if (district) components.push(district);
+        if (neighbourhood) components.push(neighbourhood);
+        if (components.length > 0) {
+          koreanAddress = components.join(' ');
+        }
+      }
+      if (!koreanAddress || koreanAddress.trim() === '') {
+        const addressParts = data.display_name.split(', ');
+        let foundCity = false;
+        let foundDistrict = false;
+        let foundNeighbourhood = false;
+        const components = [];
+        for (let i = 0; i < addressParts.length; i++) {
+          const part = addressParts[i].trim();
+          if (!foundCity && (part.includes('서울') || part.includes('부산') || part.includes('대구') || part.includes('인천') || part.includes('광주') || part.includes('대전') || part.includes('울산') || part.includes('세종'))) {
+            components.push(part);
+            foundCity = true;
+          }
+          if (foundCity && !foundDistrict && (part.includes('구') || part.includes('군'))) {
+            components.push(part);
+            foundDistrict = true;
+          }
+          if (foundDistrict && !foundNeighbourhood && (part.includes('동') || part.includes('읍') || part.includes('면'))) {
+            components.push(part);
+            foundNeighbourhood = true;
+            break;
+          }
+        }
+        if (components.length > 0) {
+          koreanAddress = components.join(' ');
+        }
+      }
+      if (!koreanAddress || koreanAddress.trim() === '') {
+        const addressParts = data.display_name.split(', ');
+        const components = [];
+        for (let i = 0; i < addressParts.length; i++) {
+          const part = addressParts[i].trim();
+          if (part.includes('서울') || part.includes('부산') || part.includes('대구') || part.includes('인천') || part.includes('광주') || part.includes('대전') || part.includes('울산') || part.includes('세종') || part.includes('구') || part.includes('군') || part.includes('동') || part.includes('읍') || part.includes('면')) {
+            components.push(part);
+          }
+        }
+        if (components.length > 0) {
+          koreanAddress = components.join(' ');
+        }
+      }
+      if (koreanAddress) {
+        const parts = koreanAddress.split(' ');
+        const filteredParts = parts.filter(part =>
+          !part.includes('리') && !part.includes('가') && !part.includes('로') &&
+          !part.includes('길') && !part.includes('번지') && !part.includes('대한민국')
+        );
+        koreanAddress = filteredParts.join(' ');
+      }
+      if (!koreanAddress || koreanAddress.trim() === '') {
+        koreanAddress = data.display_name.replace('대한민국', '').trim();
+        if (koreanAddress.startsWith(',')) {
+          koreanAddress = koreanAddress.substring(1).trim();
+        }
+      }
+      setCurrentAddress(koreanAddress || '주소를 찾을 수 없습니다.');
     } catch (error) {
-      console.error('동기화 오류:', error);
-      setError('동기화 중 오류가 발생했습니다.');
+      setCurrentAddress(`주소 변환 중 오류가 발생했습니다: ${error.message}`);
     } finally {
-      setSyncing(false);
+      setIsLoadingLocation(false);
     }
   };
 
-  const fetchInventoryByLocation = async (location) => {
+  const clearLocation = () => {
+    setCurrentLocation(null);
+    setLocationError(null);
+    setCurrentAddress(null);
+    setNearbyBranchNames([]); // 저장된 지점명 초기화
+    setFilteredInventory([]); // 필터링된 재고 데이터 초기화
+    setNearbyBranchesArray([]); // 가장 가까운 지점들 배열 초기화
+  };
+
+  const fetchInventoryByLocation = async (location, branchesArray = null) => {
     try {
       const params = new URLSearchParams();
       if (location.district) params.append('district', location.district);
@@ -382,7 +453,60 @@ function Guest() {
 
       const response = await axios.get(`http://localhost:5000/api/guest/inventory?${params}`);
       
-      setInventory(response.data.data);
+      const allInventory = response.data.data;
+      
+      // 전달받은 배열 또는 현재 상태의 배열 사용
+      const targetBranchesArray = branchesArray || nearbyBranchesArray;
+      
+      // 배열에 저장된 지점 정보를 기반으로 재고 필터링 및 거리 정보 추가
+      console.log('=== fetchInventoryByLocation 시작 ===');
+      console.log('전달받은 branchesArray:', branchesArray);
+      console.log('현재 nearbyBranchesArray 상태:', nearbyBranchesArray);
+      console.log('사용할 targetBranchesArray:', targetBranchesArray);
+      console.log('targetBranchesArray 길이:', targetBranchesArray.length);
+      
+      if (targetBranchesArray.length > 0) {
+        const processedInventory = [];
+        
+        console.log('=== 배열 처리 시작 ===');
+        console.log('배열에 저장된 지점들:', targetBranchesArray);
+        console.log('배열 크기:', targetBranchesArray.length);
+        
+        // 배열의 각 지점에 대해 재고 처리 (원본 배열 보존)
+        targetBranchesArray.forEach((branch, index) => {
+          console.log(`처리 중인 지점 ${index + 1}:`, branch.name, '거리:', branch.distance);
+          
+          // 해당 지점의 재고 찾기
+          const branchInventory = allInventory.filter(item => item.location === branch.name);
+          console.log(`${branch.name} 지점의 전체 재고:`, branchInventory);
+          console.log(`${branch.name} 지점의 재고 수:`, branchInventory.length);
+          
+          // 거리 정보 추가
+          const inventoryWithDistance = branchInventory.map(item => ({
+            ...item,
+            distance: branch.distance
+          }));
+          
+          processedInventory.push(...inventoryWithDistance);
+          console.log(`${branch.name} 지점 처리 완료. 추가된 재고:`, inventoryWithDistance);
+        });
+        
+        console.log('=== 배열 처리 완료 ===');
+        console.log('처리된 전체 재고:', processedInventory);
+        
+        // 거리순 정렬 (가까운 순서대로)
+        processedInventory.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+        
+        setFilteredInventory(processedInventory);
+        console.log('최종 필터링된 재고 데이터:', processedInventory);
+        console.log('총 처리된 재고 수:', processedInventory.length);
+      } else {
+        // 배열이 비어있으면 전체 재고 표시
+        setFilteredInventory(allInventory);
+        console.log('배열이 비어있어 전체 재고 데이터 표시:', allInventory);
+      }
+      
+      setInventory(allInventory); // 원본 데이터는 유지
       setLocationInfo(response.data.location);
       setBranchInfo(response.data.branches);
       setSummaryInfo(response.data.summary);
@@ -399,30 +523,80 @@ function Guest() {
     try {
       console.log('블루핸즈 데이터 조회 시작:', { latitude, longitude });
       
-      const response = await axios.get(`http://localhost:5000/api/inventory/bluehands`, {
-        params: {
-          latitude: latitude,
-          longitude: longitude
-        }
-      });
+      // Master 페이지 방식: 모든 블루핸즈 지점 목록을 가져와서 프론트엔드에서 거리 계산
+      const response = await axios.get('http://localhost:5000/api/inventory/bluehands/list');
       
       console.log('블루핸즈 API 응답:', response.data);
       
-      if (response.data.success) {
-        setBluehandsData(response.data.data);
-        console.log('설정된 블루핸즈 데이터:', response.data.data);
-        console.log('디버그 정보:', response.data.debug);
+      if (response.data && response.data.data) {
+        let allBluehands = response.data.data;
         
-        if (response.data.count === 0) {
+        // 배열이 아니면 배열로 변환
+        if (!Array.isArray(allBluehands)) {
+          allBluehands = allBluehands ? [allBluehands] : [];
+        }
+        
+        console.log('전체 블루핸즈 지점 수:', allBluehands.length);
+        
+        // 각 지점에 대해 거리 계산
+        const bluehandsWithDistance = allBluehands
+          .map(branch => ({
+            ...branch,
+            distance: (branch.latitude && branch.longitude) ?
+              getDistanceFromLatLonInKm(
+                latitude,
+                longitude,
+                Number(branch.latitude),
+                Number(branch.longitude)
+              ) : null
+          }))
+          .filter(branch => branch.distance !== null) // 거리 계산이 가능한 지점만
+          .filter(branch => branch.distance <= 3.0) // 3km 이내만
+          .sort((a, b) => a.distance - b.distance); // 거리순 정렬
+        
+        console.log('3km 이내 지점 수:', bluehandsWithDistance.length);
+        console.log('3km 이내 지점들:', bluehandsWithDistance);
+        
+        // 최대 5개 지점 선택
+        const selectedBranches = bluehandsWithDistance.slice(0, 5);
+        
+        console.log('선택된 지점들 (최대 5개):', selectedBranches);
+        
+        // 배열에 저장할 데이터 구성
+        const newStack = selectedBranches.map(branch => ({
+          name: branch.name,
+          distance: branch.distance
+        }));
+        
+        setBluehandsData(selectedBranches); // UI 표시용
+        setNearbyBranchesArray(newStack);
+        
+        // 지점명만 추출하여 저장 (기존 호환성 유지)
+        const branchNames = newStack.map(item => item.name);
+        setNearbyBranchNames(branchNames);
+        
+        console.log('=== 상태 설정 완료 ===');
+        console.log('설정된 nearbyBranchesArray:', newStack);
+        console.log('설정된 nearbyBranchNames:', branchNames);
+        console.log('배열 크기:', newStack.length);
+        console.log('각 지점까지의 거리:', newStack.map(item => `${item.name}: ${item.distance.toFixed(2)}km`));
+        
+        if (bluehandsWithDistance.length === 0) {
           console.log('반경 3KM 내 블루핸즈 지점이 없습니다.');
           console.log('현재 위치:', { latitude, longitude });
-          console.log('데이터베이스 내 총 블루핸즈 지점 수:', response.data.debug?.totalBluehandsInDB);
+          console.log('전체 블루핸즈 지점 수:', allBluehands.length);
         }
+        
+        // 배열 반환
+        return newStack;
       }
     } catch (error) {
       console.error('블루핸즈 데이터 조회 오류:', error);
       console.error('오류 상세:', error.response?.data || error.message);
       setBluehandsData([]);
+      setNearbyBranchNames([]); // 오류 시 지점명 초기화
+      setNearbyBranchesArray([]); // 오류 시 스택 초기화
+      return []; // 오류 시 빈 배열 반환
     } finally {
       setIsLoadingBluehands(false);
     }
@@ -438,99 +612,6 @@ function Guest() {
         return '하이테크센터';
       default:
         return '기타';
-    }
-  };
-
-  const getAddressFromCoordinates = async (latitude, longitude) => {
-    try {
-      console.log('주소 변환 시작:', { latitude, longitude });
-      
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&accept-language=ko&addressdetails=1`
-      );
-      
-      if (!response.ok) {
-        throw new Error(`API 응답 오류: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('전체 주소 데이터:', data);
-      
-      if (!data.display_name) {
-        return '주소를 찾을 수 없습니다.';
-      }
-      
-      let koreanAddress = '';
-      
-      // 방법 1: address 객체에서 직접 추출
-      if (data.address) {
-        const addr = data.address;
-        const state = addr.state || addr.province; // 시/도
-        const district = addr.district || addr.suburb; // 구
-        const neighbourhood = addr.neighbourhood || addr.quarter; // 동
-        
-        const components = [];
-        if (state) components.push(state);
-        if (district) components.push(district);
-        if (neighbourhood) components.push(neighbourhood);
-        
-        if (components.length > 0) {
-          koreanAddress = components.join(' ');
-        }
-      }
-      
-      // 방법 2: display_name에서 파싱
-      if (!koreanAddress || koreanAddress.trim() === '') {
-        const addressParts = data.display_name.split(', ');
-        let foundCity = false;
-        let foundDistrict = false;
-        let foundNeighbourhood = false;
-        const components = [];
-        
-        for (let i = 0; i < addressParts.length; i++) {
-          const part = addressParts[i].trim();
-          
-          // 시/도 찾기
-          if (!foundCity && (part.includes('서울') || part.includes('부산') || part.includes('대구') || 
-              part.includes('인천') || part.includes('광주') || part.includes('대전') || 
-              part.includes('울산') || part.includes('세종'))) {
-            components.push(part);
-            foundCity = true;
-          }
-          
-          // 구 찾기
-          if (foundCity && !foundDistrict && (part.includes('구') || part.includes('군'))) {
-            components.push(part);
-            foundDistrict = true;
-          }
-          
-          // 동 찾기
-          if (foundDistrict && !foundNeighbourhood && (part.includes('동') || part.includes('읍') || part.includes('면'))) {
-            components.push(part);
-            foundNeighbourhood = true;
-            break;
-          }
-        }
-        
-        if (components.length > 0) {
-          koreanAddress = components.join(' ');
-        }
-      }
-      
-      // 최종적으로 불필요한 요소 제거
-      if (koreanAddress) {
-        const parts = koreanAddress.split(' ');
-        const filteredParts = parts.filter(part => 
-          !part.includes('리') && !part.includes('가') && !part.includes('로') &&
-          !part.includes('길') && !part.includes('번지') && !part.includes('대한민국')
-        );
-        koreanAddress = filteredParts.join(' ');
-      }
-      
-      return koreanAddress || '주소를 찾을 수 없습니다.';
-    } catch (error) {
-      console.error('주소 변환 오류:', error);
-      return '주소를 찾을 수 없습니다.';
     }
   };
 
@@ -560,6 +641,20 @@ function Guest() {
     return 'guest로 로그인 중입니다';
   };
 
+  // 거리 계산 함수 (Master 페이지 방식)
+  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+    const R = 6371; // 지구 반지름(km)
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c;
+    return d;
+  }
+
   const handleLogout = () => {
     navigate('/');
   };
@@ -570,20 +665,34 @@ function Guest() {
         <img src={process.env.PUBLIC_URL + '/image1-removebg-preview.png'} alt="현대자동차그룹 로고" style={{ height: '60px' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <LoginStatus>
-            {formatLocationDisplay(userLocation)}
+            {currentLocation && !isLoadingLocation
+              ? `위도: ${currentLocation.latitude.toFixed(6)}, 경도: ${currentLocation.longitude.toFixed(6)}`
+              : 'guest로 로그인 중입니다'}
           </LoginStatus>
-          <LocationButton onClick={handleGetCurrentLocation}>
+          <button onClick={getCurrentLocation} style={{ padding: '0.5rem 1rem', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
             현재 위치로 조회
-          </LocationButton>
-          <SyncButton onClick={handleSyncBluehands} disabled={syncing}>
-            {syncing ? '동기화 중...' : '데이터 동기화'}
-          </SyncButton>
+          </button>
+          {currentLocation && (
+            <button onClick={clearLocation} style={{ padding: '0.5rem 1rem', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+              위치 초기화
+            </button>
+          )}
           <LogoutButton onClick={handleLogout}>로그아웃</LogoutButton>
         </div>
       </Header>
       
+      {isLoadingLocation && (
+        <div style={{ color: '#007bff', margin: '1rem 0' }}>GPS 위치를 확인하고 있습니다...</div>
+      )}
+      {locationError && (
+        <div style={{ color: '#dc3545', margin: '1rem 0' }}>{locationError}</div>
+      )}
+      {currentAddress && !isLoadingLocation && (
+        <div style={{ color: '#28a745', margin: '1rem 0', fontWeight: 'bold' }}>📍 {currentAddress}</div>
+      )}
+      
       <Content>
-        <h2>재고 현황</h2>
+        <h2>내 주변 블루핸즈 지점 재고 현황</h2>
         
         {error && <ErrorMessage>{error}</ErrorMessage>}
         
@@ -631,6 +740,36 @@ function Guest() {
               </SummaryInfo>
             )}
             
+            {/* 필터링된 지점 정보 표시 */}
+            {nearbyBranchesArray.length > 0 && (
+              <div style={{ 
+                marginBottom: '1rem', 
+                padding: '1rem', 
+                backgroundColor: '#e3f2fd', 
+                borderRadius: '4px',
+                border: '1px solid #2196f3'
+              }}>
+                <strong>📍 현재 조회 중인 지점 (3km 이내, 거리순 정렬):</strong>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                  {nearbyBranchesArray.map((branch, index) => (
+                    <span key={index} style={{ 
+                      marginRight: '1rem', 
+                      padding: '0.25rem 0.5rem', 
+                      backgroundColor: '#2196f3', 
+                      color: 'white', 
+                      borderRadius: '4px',
+                      fontSize: '0.8rem'
+                    }}>
+                      {branch.name} ({branch.distance.toFixed(2)}km)
+                    </span>
+                  ))}
+                </div>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#666' }}>
+                  총 {nearbyBranchesArray.length}개 지점의 재고만 표시됩니다. (현재 위치 기준 3km 이내, 가장 가까운 순서)
+                </div>
+              </div>
+            )}
+            
             <InventoryTable>
               <thead>
                 <tr>
@@ -638,21 +777,25 @@ function Guest() {
                   <TableHeader>수량</TableHeader>
                   <TableHeader>지점위치</TableHeader>
                   <TableHeader>등록일자</TableHeader>
+                  <TableHeader>거리차이(km)</TableHeader>
                 </tr>
               </thead>
               <tbody>
-                {inventory.map((item) => (
+                {filteredInventory.map((item) => (
                   <tr key={item.id}>
                     <TableCell>{item.part_name}</TableCell>
                     <TableCell>{item.quantity}</TableCell>
                     <TableCell>{item.location}</TableCell>
                     <TableCell>{new Date(item.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {item.distance ? `${item.distance.toFixed(2)}km` : '-'}
+                    </TableCell>
                   </tr>
                 ))}
               </tbody>
             </InventoryTable>
             
-            {inventory.length === 0 && !loading && (
+            {filteredInventory.length === 0 && !loading && (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
                 해당 지역의 재고 정보가 없습니다.
               </div>

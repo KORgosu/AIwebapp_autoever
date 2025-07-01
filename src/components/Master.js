@@ -309,6 +309,8 @@ function Master() {
     autoGetCurrentLocation();
     // 블루핸즈 지점 목록 가져오기
     fetchBluehandsList();
+    // 페이지 타이틀 설정
+    document.title = "현대자동차 통합 재고 관리";
   }, []);
 
   // 검색어가 변경될 때마다 필터링 실행
@@ -324,6 +326,7 @@ function Master() {
     }
   }, [searchTerm, inventory]);
 
+  
   const initializeMasterAccount = async () => {
     try {
       // 기존 마스터 계정이 있는지 확인
@@ -358,6 +361,7 @@ function Master() {
       console.error('마스터 계정 초기화 오류:', error);
     }
   };
+  
 
   const testDatabaseConnection = async () => {
     try {
