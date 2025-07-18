@@ -155,6 +155,14 @@ app.get('/api/guest/inventory', async (req, res) => {
   }
 });
 
+// 정적 파일 서빙 (React build 결과물)
+app.use(express.static(require('path').join(__dirname, '../public')));
+
+// SPA 라우팅 지원 (React Router 사용 시)
+app.get('*', (req, res) => {
+  res.sendFile(require('path').join(__dirname, '../public/index.html'));
+});
+
 // 서버 시작
 app.listen(port, () => {
   console.log(`서버가 포트 ${port}에서 실행 중입니다.`);
