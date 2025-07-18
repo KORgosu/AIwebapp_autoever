@@ -242,29 +242,30 @@ const Login = () => {
       </RightSection>
       <BottomRectangle>
         <WhiteLogo src="/logo_footer.png" alt="현대자동차 화이트 로고" />
-        <BluehandsLogoLink
+        <a
+          href="https://www.hyundai-autoever.com/kor/main/index.do"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', paddingRight: '1rem' }}
+        >
+          <AutoeverLogo src="/logo-autoever-pc.png" alt="오토에버 로고" />
+        </a>
+        <a
+          href="https://www.hyundai-kefico.com/ko/main/index.do"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', paddingRight: '1rem' }}
+        >
+          <KeficoLogo src="/logo-kefico.png" alt="케피코 로고" />
+        </a>
+        <a
           href="https://www.hyundai.com/kr/ko/service-membership/service-network/service-network-information/bluehands"
           target="_blank"
           rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', paddingRight: '3rem' }}
         >
-          <a
-            href="https://www.hyundai-autoever.com/kor/main/index.do"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ display: 'flex', alignItems: 'center' }}
-          >
-            <AutoeverLogo src="/logo-autoever-pc.png" alt="오토에버 로고" />
-          </a>
-          <a
-            href="https://www.hyundai-kefico.com/ko/main/index.do"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ display: 'flex', alignItems: 'center' }}
-          >
-            <KeficoLogo src="/logo-kefico.png" alt="케피코 로고" />
-          </a>
           <BluehandsLogo src="/logo-bluehands-pc.png" alt="블루핸즈 로고" />
-        </BluehandsLogoLink>
+        </a>
       </BottomRectangle>
     </LoginContainer>
   );
