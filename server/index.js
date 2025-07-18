@@ -16,8 +16,8 @@ const pool = mariadb.createPool({
   connectionLimit: 5
 });
 
-// MongoDB 연결
-const mongoClient = new MongoClient(process.env.MONGODB_URI);
+// MongoDB 연결 (환경 변수가 있을 때만)
+const mongoClient = process.env.MONGODB_URI ? new MongoClient(process.env.MONGODB_URI) : null;
 
 app.use(cors());
 app.use(express.json());
@@ -143,6 +143,10 @@ app.delete('/api/inventory/:id', async (req, res) => {
 
 // 게스트용 재고 데이터 조회 (MongoDB)
 app.get('/api/guest/inventory', async (req, res) => {
+  if (!mongoClient) {
+    return res.status(503).json({ error: 'MongoDB 연결이 설정되지 않았습니다.' });
+  }
+  
   try {
     await mongoClient.connect();
     const db = mongoClient.db('hyundai_inventory');

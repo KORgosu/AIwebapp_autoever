@@ -7,6 +7,12 @@ GitHub 저장소의 Settings > Secrets and variables > Actions에서 다음 시�
 ### 필수 Secrets:
 - `DOCKER_USERNAME`: Docker Hub 사용자명
 - `DOCKER_PASSWORD`: Docker Hub 액세스 토큰 (비밀번호 아님)
+- `REACT_APP_FIREBASE_API_KEY`: Firebase API 키
+- `REACT_APP_FIREBASE_AUTH_DOMAIN`: Firebase 인증 도메인
+- `REACT_APP_FIREBASE_PROJECT_ID`: Firebase 프로젝트 ID
+- `REACT_APP_FIREBASE_STORAGE_BUCKET`: Firebase 스토리지 버킷
+- `REACT_APP_FIREBASE_MESSAGING_SENDER_ID`: Firebase 메시징 발신자 ID
+- `REACT_APP_FIREBASE_APP_ID`: Firebase 앱 ID
 
 ## 2. Docker Hub 액세스 토큰 생성
 
