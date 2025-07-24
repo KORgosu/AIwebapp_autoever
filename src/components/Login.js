@@ -76,14 +76,6 @@ const KeficoLogo = styled.img`
   filter: brightness(0) invert(1);
 `;
 
-const BluehandsLogoLink = styled.a`
-  display: flex;
-  align-items: center;
-  height: 100%;
-  margin-left: auto;
-  padding-right: 3rem;
-`;
-
 const BluehandsLogo = styled.img`
   height: 32px;
   width: auto;

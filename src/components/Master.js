@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import axios from 'axios';
@@ -17,11 +17,6 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-`;
-
-const Title = styled.h1`
-  color: #333;
-  margin: 0;
 `;
 
 const LoginStatus = styled.div`
@@ -311,6 +306,36 @@ function Master() {
     fetchBluehandsList();
     // 페이지 타이틀 설정
     document.title = "현대자동차 통합 재고 관리";
+  }, []);
+
+  const autoGetCurrentLocation = useCallback(async () => {
+    try {
+      console.log('Master 페이지 자동 위치 조회 시작');
+      
+      if (!navigator.geolocation) {
+        console.log('Geolocation이 지원되지 않습니다.');
+        return;
+      }
+
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      setCurrentLocation({ latitude, longitude });
+      console.log('Master 페이지 자동 위치 설정 완료:', { latitude, longitude });
+      
+      // 주소 변환
+      await getAddressFromCoordinates(latitude, longitude);
+      
+    } catch (error) {
+      console.error('Master 페이지 자동 위치 조회 실패:', error);
+      // 자동 조회 실패 시에도 기본 기능은 계속 동작
+    }
   }, []);
 
   useEffect(() => {
@@ -654,47 +679,6 @@ function Master() {
       setCurrentAddress(`주소 변환 중 오류가 발생했습니다: ${error.message}`);
     } finally {
       setIsLoadingAddress(false);
-    }
-  };
-
-  const autoGetCurrentLocation = async () => {
-    try {
-      console.log('Master 페이지 자동 위치 조회 시작');
-      
-      if (!navigator.geolocation) {
-        console.log('Geolocation이 지원되지 않습니다.');
-        return;
-      }
-
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        });
-      });
-
-      const { latitude, longitude } = position.coords;
-      setCurrentLocation({ latitude, longitude });
-      console.log('Master 페이지 자동 위치 설정 완료:', { latitude, longitude });
-      
-      // 주소 변환
-      await getAddressFromCoordinates(latitude, longitude);
-      
-    } catch (error) {
-      console.error('Master 페이지 자동 위치 조회 실패:', error);
-      // 자동 조회 실패 시에도 기본 기능은 계속 동작
-    }
-  };
-
-  const handleSearchLocation = () => {
-    // 검색은 이미 useEffect에서 자동으로 처리됨
-    console.log('검색어:', currentLocation);
-  };
-
-  const handleSearchLocationKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearchLocation();
     }
   };
 

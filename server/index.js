@@ -37,6 +37,10 @@ if (pool) {
 const inventoryRouter = require('./routes/inventory');
 app.use('/api/inventory', inventoryRouter);
 
+// location 라우터 추가
+const locationRouter = require('./routes/location');
+app.use('/api', locationRouter);
+
 // 데이터베이스 연결 테스트
 app.get('/api/test', async (req, res) => {
   if (!pool) {

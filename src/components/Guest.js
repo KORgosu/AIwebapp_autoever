@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import axios from 'axios';
@@ -14,11 +14,6 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-`;
-
-const Title = styled.h1`
-  color: #333;
-  margin: 0;
 `;
 
 const LoginStatus = styled.div`
@@ -189,12 +184,8 @@ function Guest() {
   const [nearbyBranchNames, setNearbyBranchNames] = useState([]);
   const [inventory, setInventory] = useState([]);
 
-  useEffect(() => {
-    autoGetCurrentLocation();
-    initializeLocation();
-  }, [autoGetCurrentLocation, initializeLocation]);
-
-  const initializeLocation = async () => {
+  // 1. initializeLocation을 먼저 선언
+  const initializeLocation = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -224,45 +215,61 @@ function Guest() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const autoGetCurrentLocation = async () => {
+  // 2. autoGetCurrentLocation을 그 아래에 선언
+  const autoGetCurrentLocation = useCallback(async () => {
     try {
-      console.log('자동 위치 조회 시작');
-      const coords = await getCurrentLocation();
+      setLoading(true);
+      setError(null);
+      setCurrentAddress(null);
+      setUserLocation(null);
+      setCurrentLocation(null);
       
-      // GPS 좌표를 주소로 변환
-      await getAddressFromCoordinates(coords.latitude, coords.longitude);
-      
-      const newLocation = {
-        city: '서울특별시',
-        region: '서울특별시',
-        district: '강남구',
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        address: currentAddress // 변환된 주소 추가
-      };
-      
-      setUserLocation(newLocation);
-      console.log('자동 위치 설정 완료:', newLocation);
-      
-      // 블루핸즈 데이터 먼저 조회 (지점명 저장을 위해)
-      const branchesArray = await fetchBluehandsData(coords.latitude, coords.longitude);
-      
-      // 그 다음 재고 조회 (필터링된 데이터 표시)
-      await fetchInventoryByLocation(newLocation, branchesArray);
-      
+      if (!navigator.geolocation) {
+        setError('이 브라우저에서는 위치 정보를 지원하지 않습니다.');
+        setLoading(false);
+        initializeLocation();
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const coords = position.coords;
+          setCurrentLocation({ latitude: coords.latitude, longitude: coords.longitude });
+          setLoading(false);
+          await getAddressFromCoordinates(coords.latitude, coords.longitude);
+          const newLocation = {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            address: currentAddress // 변환된 주소 추가
+          };
+          setUserLocation(newLocation);
+          console.log('자동 위치 설정 완료:', newLocation);
+          const branchesArray = await fetchBluehandsData(coords.latitude, coords.longitude);
+          await fetchInventoryByLocation(newLocation, branchesArray);
+        },
+        (error) => {
+          console.error('자동 위치 조회 실패:', error);
+          initializeLocation();
+        }
+      );
     } catch (error) {
       console.error('자동 위치 조회 실패:', error);
-      // 자동 조회 실패 시 기본 위치로 초기화
       initializeLocation();
     }
-  };
+  }, [initializeLocation, currentAddress]);
+
+  useEffect(() => {
+    autoGetCurrentLocation();
+    initializeLocation();
+  }, [autoGetCurrentLocation, initializeLocation]);
 
   const detectLocationByIP = async () => {
     try {
-      const response = await fetch('https://ipapi.co/json/');
-      const data = await response.json();
+      // 프록시된 서버 API로 변경
+      const resp = await fetch('/api/ip-location');
+      const data = await resp.json();
       
       return {
         city: data.city || '서울특별시',
@@ -597,32 +604,6 @@ function Guest() {
       default:
         return '기타';
     }
-  };
-
-  const formatLocationDisplay = (location) => {
-    if (!location) return 'guest로 로그인 중입니다';
-    
-    // 변환된 주소가 있는 경우 우선 사용
-    if (location.address && location.address !== '주소를 찾을 수 없습니다.') {
-      return `${location.address}에서 접속 중`;
-    }
-    
-    // GPS 좌표가 있는 경우 주소로 변환 중
-    if (location.latitude && location.longitude) {
-      return '위치 확인 중...';
-    }
-    
-    // city와 district가 있는 경우
-    if (location.city && location.district) {
-      return `${location.city} ${location.district}에서 접속 중`;
-    }
-    
-    // city만 있는 경우
-    if (location.city) {
-      return `${location.city}에서 접속 중`;
-    }
-    
-    return 'guest로 로그인 중입니다';
   };
 
   // 거리 계산 함수 (Master 페이지 방식)
