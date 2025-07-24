@@ -111,12 +111,6 @@ const Logo = styled.img`
   object-fit: contain;
 `;
 
-const Title = styled.h1`
-  color: #002C5F;
-  margin-bottom: 2rem;
-  font-size: 1.5rem;
-`;
-
 const Form = styled.form`
   display: flex;
   flex-direction: column;

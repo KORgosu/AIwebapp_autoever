@@ -116,19 +116,6 @@ const ErrorMessage = styled.div`
   border-left: 4px solid #dc3545;
 `;
 
-const LocationButton = styled.button`
-  padding: 0.5rem 1rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-left: 1rem;
-  &:hover {
-    background-color: #0056b3;
-  }
-`;
-
 const DistanceBadge = styled.span`
   background-color: #17a2b8;
   color: white;
@@ -184,11 +171,7 @@ const NoDataMessage = styled.div`
 
 function Guest() {
   const navigate = useNavigate();
-  const [inventory, setInventory] = useState([]);
   const [lastSync, setLastSync] = useState(null);
-  const [userLocation, setUserLocation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [locationInfo, setLocationInfo] = useState(null);
   const [branchInfo, setBranchInfo] = useState(null);
   const [summaryInfo, setSummaryInfo] = useState(null);
@@ -198,17 +181,18 @@ function Guest() {
   const [locationError, setLocationError] = useState(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [currentAddress, setCurrentAddress] = useState(null);
-  const [nearbyBranchNames, setNearbyBranchNames] = useState([]);
-  const [filteredInventory, setFilteredInventory] = useState([]);
   const [nearbyBranchesArray, setNearbyBranchesArray] = useState([]);
+  const [filteredInventory, setFilteredInventory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [nearbyBranchNames, setNearbyBranchNames] = useState([]);
+  const [inventory, setInventory] = useState([]);
 
   useEffect(() => {
-    initializeLocation();
-    // 로그인 시 즉시 현재 위치 조회
     autoGetCurrentLocation();
-    // 페이지 타이틀 설정
-    document.title = "현대자동차 통합 재고 조회";
-  }, []);
+    initializeLocation();
+  }, [autoGetCurrentLocation, initializeLocation]);
 
   const initializeLocation = async () => {
     try {
@@ -688,7 +672,7 @@ function Guest() {
         <div style={{ color: '#dc3545', margin: '1rem 0' }}>{locationError}</div>
       )}
       {currentAddress && !isLoadingLocation && (
-        <div style={{ color: '#28a745', margin: '1rem 0', fontWeight: 'bold' }}>📍 {currentAddress}</div>
+        <div style={{ color: '#28a745', margin: '1rem 0', fontWeight: 'bold' }}>�� {currentAddress}</div>
       )}
       
       <Content>

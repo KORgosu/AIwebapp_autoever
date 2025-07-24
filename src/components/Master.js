@@ -313,6 +313,10 @@ function Master() {
     document.title = "현대자동차 통합 재고 관리";
   }, []);
 
+  useEffect(() => {
+    autoGetCurrentLocation();
+  }, [autoGetCurrentLocation]);
+
   // 검색어가 변경될 때마다 필터링 실행
   useEffect(() => {
     if (searchTerm.trim() === '') {
@@ -688,68 +692,10 @@ function Master() {
     console.log('검색어:', currentLocation);
   };
 
-  const handleSearchLocationInputChange = (e) => {
-    // 검색은 이미 useEffect에서 자동으로 처리됨
-    console.log('검색어:', e.target.value);
-  };
-
   const handleSearchLocationKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleSearchLocation();
     }
-  };
-
-  const getCurrentLocation = () => {
-    setIsLoadingLocation(true);
-    setLocationError(null);
-    setCurrentAddress(null);
-    
-    if (!navigator.geolocation) {
-      setLocationError('이 브라우저에서는 위치 정보를 지원하지 않습니다.');
-      setIsLoadingLocation(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setCurrentLocation({ latitude, longitude });
-        setIsLoadingLocation(false);
-        console.log('현재 위치:', { latitude, longitude });
-        
-        // 위치를 가져온 후 주소도 함께 가져오기
-        getAddressFromCoordinates(latitude, longitude);
-      },
-      (error) => {
-        let errorMessage = '위치를 가져올 수 없습니다.';
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = '위치 정보 접근이 거부되었습니다.';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = '위치 정보를 사용할 수 없습니다.';
-            break;
-          case error.TIMEOUT:
-            errorMessage = '위치 정보 요청 시간이 초과되었습니다.';
-            break;
-          default:
-            errorMessage = '알 수 없는 오류가 발생했습니다.';
-        }
-        setLocationError(errorMessage);
-        setIsLoadingLocation(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000
-      }
-    );
-  };
-
-  const clearLocation = () => {
-    setCurrentLocation(null);
-    setLocationError(null);
-    setCurrentAddress(null);
   };
 
   const fetchBluehandsList = async () => {
@@ -784,6 +730,13 @@ function Master() {
     const d = R * c;
     return d;
   }
+
+  // clearLocation 함수가 사용된다면 아래와 같이 복구
+  const clearLocation = () => {
+    setCurrentLocation(null);
+    setLocationError(null);
+    setCurrentAddress(null);
+  };
 
   return (
     <MasterContainer>
