@@ -180,9 +180,9 @@ function Guest() {
   const [filteredInventory, setFilteredInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userLocation, setUserLocation] = useState(null);
-  const [nearbyBranchNames, setNearbyBranchNames] = useState([]);
-  const [inventory, setInventory] = useState([]);
+  // const [userLocation, setUserLocation] = useState(null); // 사용하지 않으므로 삭제
+  // const [nearbyBranchNames, setNearbyBranchNames] = useState([]); // 사용하지 않으므로 삭제
+  // const [inventory, setInventory] = useState([]); // 사용하지 않으므로 삭제
 
   // 1. initializeLocation을 먼저 선언
   const initializeLocation = useCallback(async () => {
@@ -202,8 +202,6 @@ function Guest() {
         };
       }
 
-      setUserLocation(location);
-      
       // 3. 위치 기반 재고 조회
       await fetchInventoryByLocation(location);
       
@@ -215,7 +213,7 @@ function Guest() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchInventoryByLocation]);
 
   // 2. autoGetCurrentLocation을 그 아래에 선언
   const autoGetCurrentLocation = useCallback(async () => {
@@ -223,7 +221,7 @@ function Guest() {
       setLoading(true);
       setError(null);
       setCurrentAddress(null);
-      setUserLocation(null);
+      // setUserLocation(null); // 삭제
       setCurrentLocation(null);
       
       if (!navigator.geolocation) {
@@ -244,7 +242,7 @@ function Guest() {
             longitude: coords.longitude,
             address: currentAddress // 변환된 주소 추가
           };
-          setUserLocation(newLocation);
+          // setUserLocation(newLocation); // 삭제
           console.log('자동 위치 설정 완료:', newLocation);
           const branchesArray = await fetchBluehandsData(coords.latitude, coords.longitude);
           await fetchInventoryByLocation(newLocation, branchesArray);
@@ -258,7 +256,7 @@ function Guest() {
       console.error('자동 위치 조회 실패:', error);
       initializeLocation();
     }
-  }, [initializeLocation, currentAddress]);
+  }, [initializeLocation, currentAddress, fetchInventoryByLocation, fetchBluehandsData]);
 
   useEffect(() => {
     autoGetCurrentLocation();

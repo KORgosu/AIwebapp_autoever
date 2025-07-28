@@ -290,9 +290,8 @@ function Master() {
   const [filteredInventory, setFilteredInventory] = useState([]);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
-  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  const [currentAddress, setCurrentAddress] = useState(null);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+  const [currentAddress, setCurrentAddress] = useState(null);
   const [bluehandsList, setBluehandsList] = useState([]);
   const [isLoadingBluehandsList, setIsLoadingBluehandsList] = useState(false);
 
@@ -749,13 +748,13 @@ function Master() {
               )}
             </div>
           </LocationHeader>
-          {isLoadingLocation && (
-            <LocationLoading>GPS 위치를 확인하고 있습니다...</LocationLoading>
+          {isLoadingAddress && (
+            <LocationLoading>주소를 확인하고 있습니다...</LocationLoading>
           )}
           {locationError && (
             <LocationError>{locationError}</LocationError>
           )}
-          {currentLocation && !isLoadingLocation && (
+          {currentLocation && !isLoadingAddress && (
             <LocationInfo>
               위도: {currentLocation.latitude.toFixed(6)}<br />
               경도: {currentLocation.longitude.toFixed(6)}
