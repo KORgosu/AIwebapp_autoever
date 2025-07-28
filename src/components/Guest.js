@@ -426,9 +426,8 @@ function Guest() {
     setCurrentLocation(null);
     setLocationError(null);
     setCurrentAddress(null);
-    setNearbyBranchNames([]); // 저장된 지점명 초기화
-    setFilteredInventory([]); // 필터링된 재고 데이터 초기화
     setNearbyBranchesArray([]); // 가장 가까운 지점들 배열 초기화
+    setFilteredInventory([]); // 필터링된 재고 데이터 초기화
   };
 
   const fetchInventoryByLocation = async (location, branchesArray = null) => {
@@ -495,7 +494,6 @@ function Guest() {
         console.log('배열이 비어있어 전체 재고 데이터 표시:', allInventory);
       }
       
-      setInventory(allInventory); // 원본 데이터는 유지
       setLocationInfo(response.data.location);
       setBranchInfo(response.data.branches);
       setSummaryInfo(response.data.summary);
@@ -562,7 +560,6 @@ function Guest() {
         
         // 지점명만 추출하여 저장 (기존 호환성 유지)
         const branchNames = newStack.map(item => item.name);
-        setNearbyBranchNames(branchNames);
         
         console.log('=== 상태 설정 완료 ===');
         console.log('설정된 nearbyBranchesArray:', newStack);
@@ -583,7 +580,6 @@ function Guest() {
       console.error('블루핸즈 데이터 조회 오류:', error);
       console.error('오류 상세:', error.response?.data || error.message);
       setBluehandsData([]);
-      setNearbyBranchNames([]); // 오류 시 지점명 초기화
       setNearbyBranchesArray([]); // 오류 시 스택 초기화
       return []; // 오류 시 빈 배열 반환
     } finally {
