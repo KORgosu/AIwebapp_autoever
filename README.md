@@ -25,7 +25,9 @@
 
 #### [7/1 과정 6 : 근처 지점의 데이터만 추출해서 출력하기](https://nexon25.tistory.com/entry/%EC%82%AC%EC%9D%B4%EB%93%9C-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-0%EB%B6%80%ED%84%B0-100%EA%B9%8C%EC%A7%80-AI%EB%A1%9C-%EC%9B%B9-%EC%95%A0%ED%94%8C%EB%A6%AC%EC%BC%80%EC%9D%B4%EC%85%98-%EB%A7%8C%EB%93%A4%EC%96%B4%EB%B3%B4%EA%B8%B0-6)
 
+#### [8/5 과정 : Github Action 연동](https://nexon25.tistory.com/entry/%EC%82%AC%EC%9D%B4%EB%93%9C-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-0%EB%B6%80%ED%84%B0-100%EA%B9%8C%EC%A7%80-AI%EB%A1%9C-%EC%9B%B9-%EC%95%A0%ED%94%8C%EB%A6%AC%EC%BC%80%EC%9D%B4%EC%85%98-%EB%A7%8C%EB%93%A4%EC%96%B4%EB%B3%B4%EA%B8%B0-7)
 
+#### [8/6 과정 : 웹 애플리케이션의 로그인 페이지를 Amazon ECS에 배포해보기](https://nexon25.tistory.com/entry/%EC%82%AC%EC%9D%B4%EB%93%9C-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-0%EB%B6%80%ED%84%B0-100%EA%B9%8C%EC%A7%80-AI%EB%A1%9C-%EC%9B%B9-%EC%95%A0%ED%94%8C%EB%A6%AC%EC%BC%80%EC%9D%B4%EC%85%98-%EB%A7%8C%EB%93%A4%EC%96%B4%EB%B3%B4%EA%B8%B0-8)
 
 <br>
 
